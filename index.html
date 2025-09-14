@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="google-adsense-account" content="ca-pub-7010587991992406">
   <title>DFPWM Jukebox</title>
   <link rel="manifest" href="manifest.json">
   <style>
@@ -20,9 +19,6 @@
     footer{margin-top:12px;color:#666;font-size:0.9rem}
     #installBtn{display:inline-block;margin-left:8px}
   </style>
-  
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7010587991992406"
-     crossorigin="anonymous"></script>
 </head>
 <body>
   <h1>DFPWM Jukebox</h1>
@@ -135,6 +131,15 @@ let currentSource = null;
 let gainNode = null;
 let isPlaying = false;
 
+// Unlock audio on first user interaction (iOS Safari requirement)
+function initAudio() {
+  ensureAudio();
+  console.log("Audio unlocked on iOS/Android");
+}
+document.body.addEventListener("touchstart", initAudio, { once: true });
+document.body.addEventListener("click", initAudio, { once: true });
+
+
 function cleanTitle(raw){
   try{
     let title = raw.split('/').pop();
@@ -200,7 +205,13 @@ function ensureAudio(){
     gainNode.gain.value = parseFloat(volumeEl.value);
     gainNode.connect(audioCtx.destination);
   }
+
+  // iOS Safari requires resume inside a user gesture
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(err => console.warn("AudioContext resume failed:", err));
+  }
 }
+
 
 function stop(){
   if (currentSource){
@@ -286,6 +297,7 @@ if ('serviceWorker' in navigator){
 fetchSongs();
 
 </script>
+
 </body>
 
 </html>
