@@ -1,7 +1,7 @@
 {
   "name": "DFPWM Jukebox",
   "short_name": "Jukebox",
-  "description": "Play DFPWM audio files in a PWA jukebox",
+  "description": "Streams DFPWM audio as an online music service for browsers.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

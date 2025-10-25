@@ -1,306 +1,176 @@
-   w<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DFPWM Jukebox</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" />
+
   <style>
-    :root{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
-    body{max-width:900px;margin:24px auto;padding:16px;color:#111}
-    h1{font-size:1.4rem;margin-bottom:8px}
-    #list{width:100%;height:320px;border:1px solid #ddd;overflow:auto;padding:8px;border-radius:8px}
-    .song{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f0f0f0}
-    .song:last-child{border-bottom:none}
-    .controls{display:flex;gap:8px}
-    button{padding:6px 10px;border-radius:6px;border:1px solid #bbb;background:#f7f7f7}
-    button.primary{background:#0066ff;color:white;border-color:#0052cc}
-    .volume{width:100%}
-    footer{margin-top:12px;color:#666;font-size:0.9rem}
-    #installBtn{display:inline-block;margin-left:8px}
-  </style>
-</head>
-<body>
-  <h1>DFPWM Jukebox</h1>
-  <div>
-    <button id="refreshBtn">Refresh song list</button>
-    <button id="installBtn" style="display:none">Install</button>
-  </div>
-
-  <div id="list" aria-label="Song list"></div>
-
-  <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-    <div class="controls">
-      <button id="playBtn" class="primary">Play Selected</button>
-      <button id="stopBtn">Stop</button>
-      <button id="removeBtn">Remove Selected</button>
-    </div>
-    <div style="flex:1">
-      <label for="volume">Volume</label>
-      <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
-    </div>
-  </div>
-
-  <footer>
-    Uses browser Web Audio API and an in-JS DFPWM decoder.
-  </footer>
-
-<script>
-// -------------------------
-// Configuration
-// -------------------------
-const SONGS_JSON_URL = 'https://pub-050fb801777b4853a0c36256d7ab9b36.r2.dev/songs.json';
-const SAMPLE_RATE = 48000; // matches cc tweaked
-
-// -------------------------
-// DFPWM decoder (ported to JS)
-// -------------------------
-class DFPWM {
-  constructor(){
-    this.RESP_INC = 1;
-    this.RESP_DEC = 1;
-    this.RESP_PREC = 10;
-    this.LPF_STRENGTH = 140;
-    this.response = 0;
-    this.level = 0;
-    this.lastbit = false;
-    this.flastlevel = 0;
-    this.lpflevel = 0;
-  }
-
-  _ctx_update(curbit){
-    const target = curbit ? 127 : -128;
-    let nlevel = this.level + ((this.response * (target - this.level) + (1 << (this.RESP_PREC - 1))) >> this.RESP_PREC);
-    if (nlevel === this.level && this.level !== target){
-      nlevel += curbit ? 1 : -1;
+    /* =====================
+       Base Layout
+    ====================== */
+    :root {
+      --accent: #007bff;
+      --accent-dark: #0052cc;
+      --border: #ddd;
+      --text: #111;
+      --muted: #666;
+      --radius: 8px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    let rtarget;
-    if (curbit === this.lastbit){
-      rtarget = (1 << this.RESP_PREC) - 1;
-    } else {
-      rtarget = 0;
-    }
-    let nresponse = this.response;
-    if (this.response !== rtarget){
-      nresponse += (curbit === this.lastbit) ? 1 : -1;
-    }
-    if (this.RESP_PREC > 8 && nresponse < (2 << (this.RESP_PREC - 8))){
-      nresponse = (2 << (this.RESP_PREC - 8));
-    }
-    this.response = nresponse;
-    this.lastbit = curbit;
-    this.level = nlevel;
-  }
 
-  decode(uint8Array){
-    const pcm = new Float32Array(uint8Array.length * 8);
-    let pi = 0;
-    for (let i = 0; i < uint8Array.length; i++){
-      let b = uint8Array[i];
-      for (let j = 0; j < 8; j++){
-        const curbit = (b & 1) !== 0;
-        this._ctx_update(curbit);
-        b >>= 1;
-        const blevel = (curbit === this.lastbit) ? this.level : ((this.flastlevel + this.level + 1) >> 1);
-        this.flastlevel = this.level;
-        this.lpflevel += ((this.LPF_STRENGTH * (blevel - this.lpflevel) + 0x80) >> 8);
-        // normalize to -1..1 range (matching Python's division by 128.0)
-        pcm[pi++] = this.lpflevel / 128.0;
+    body {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 16px;
+      color: var(--text);
+      background: #fafafa;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    footer {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    /* =====================
+       Buttons and Controls
+    ====================== */
+    button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      background: #f7f7f7;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent-dark);
+    }
+    button.primary:hover {
+      background: var(--accent-dark);
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* =====================
+       Song List
+    ====================== */
+    #list {
+      width: 100%;
+      height: 320px;
+      border: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 8px;
+      border-radius: var(--radius);
+      background: white;
+    }
+
+    .song {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .song:hover {
+      background: #f8f8f8;
+    }
+    .song.active {
+      background: #e6edff;
+    }
+
+    /* =====================
+       Volume + Progress
+    ====================== */
+    .volume {
+      width: 100%;
+    }
+
+    #progress {
+      width: 100%;
+      height: 8px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.1s linear;
+    }
+
+    /* =====================
+       Responsive Layout
+    ====================== */
+    @media (max-width: 600px) {
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
       }
     }
-    // slice to actual length
-    return pcm.subarray(0, pi);
-  }
-}
+  </style>
+</head>
 
-// -------------------------
-// UI + Playback
-// -------------------------
-let songs = [];
-let selectedIndex = -1;
-const listEl = document.getElementById('list');
-const refreshBtn = document.getElementById('refreshBtn');
-const playBtn = document.getElementById('playBtn');
-const stopBtn = document.getElementById('stopBtn');
-const removeBtn = document.getElementById('removeBtn');
-const volumeEl = document.getElementById('volume');
-const installBtn = document.getElementById('installBtn');
+<body>
+  <header>
+    <h1>Dons DFPWM Jukebox</h1>
+    <div class="controls" style="justify-content:center;margin-bottom:12px;">
+      <button id="refreshBtn">Refresh Song List</button>
+      <button id="installBtn">Install to Desktop</button>
+    </div>
+  </header>
 
-let audioCtx = null;
-let currentSource = null;
-let gainNode = null;
-let isPlaying = false;
+  <main>
+    <section id="songList">
+      <div id="list" aria-label="Song list"></div>
+    </section>
 
-// Unlock audio on first user interaction (iOS Safari requirement)
-function initAudio() {
-  ensureAudio();
-  console.log("Audio unlocked on iOS/Android");
-}
-document.body.addEventListener("touchstart", initAudio, { once: true });
-document.body.addEventListener("click", initAudio, { once: true });
+    <section style="margin-top:16px;">
+      <div class="controls">
+        <button id="playBtn" class="primary">Play Selected</button>
+        <button id="pauseBtn">Pause</button>
+        <button id="stopBtn">Stop</button>
+        <button id="removeBtn">Remove Selected</button>
+      </div>
 
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
+        <label for="volume" style="white-space:nowrap;">Volume</label>
+        <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
+      </div>
 
-function cleanTitle(raw){
-  try{
-    let title = raw.split('/').pop();
-    title = title.replace(/\.dfpwm$/i, '');
-    const patterns = [ /\(official.*?\)/i, /\(lyrics?\)/i, /\(video.*?\)/i, /\(audio.*?\)/i, /\[.*?\]/g, /\s+\d+K/i ];
-    for (const p of patterns) title = title.replace(p, '');
-    return title.trim();
-  } catch(e){ return raw; }
-}
+      <div id="progress"><div id="bar"></div></div>
+    </section>
+  </main>
 
-function renderList(){
-  listEl.innerHTML = '';
-  songs.forEach((s, i) => {
-    const div = document.createElement('div');
-    div.className = 'song';
-    div.dataset.index = i;
-    const left = document.createElement('div');
-    left.textContent = cleanTitle(s.title || s.url || 'Unknown');
-    const right = document.createElement('div');
-    const playSmall = document.createElement('button');
-    playSmall.textContent = '▶';
-    playSmall.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectIndex(i); playSelected(); });
-    const selBtn = document.createElement('button'); selBtn.textContent = 'Select';
-    selBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectIndex(i); });
-    right.appendChild(playSmall);
-    right.appendChild(selBtn);
-    div.appendChild(left);
-    div.appendChild(right);
-    div.addEventListener('click', ()=>{ selectIndex(i); });
-    if (i === selectedIndex) div.style.background = '#eef';
-    listEl.appendChild(div);
-  });
-}
+  <footer>
+    Independent DFPWM decoder written in JavaScript, using the browser's Web Audio API.<br>
+    Source chain: WebM -> MP3 -> DFPWM.
+  </footer>
 
-function selectIndex(i){
-  selectedIndex = i;
-  renderList();
-}
-
-refreshBtn.addEventListener('click', fetchSongs);
-playBtn.addEventListener('click', playSelected);
-stopBtn.addEventListener('click', stop);
-removeBtn.addEventListener('click', removeSelected);
-volumeEl.addEventListener('input', ()=>{ if (gainNode) gainNode.gain.value = parseFloat(volumeEl.value); });
-
-async function fetchSongs(){
-  try{
-    const r = await fetch(SONGS_JSON_URL);
-    if (!r.ok) throw new Error('Fetch failed: ' + r.status);
-    songs = await r.json();
-    selectedIndex = (songs.length > 0) ? 0 : -1;
-    renderList();
-  } catch(e){
-    console.error('Failed to fetch songs:', e);
-    listEl.innerHTML = '<div style="padding:12px;color:#a00">Failed to fetch songs: '+e.message+'</div>';
-  }
-}
-
-function ensureAudio(){
-  if (!audioCtx){
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)({sampleRate: SAMPLE_RATE});
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = parseFloat(volumeEl.value);
-    gainNode.connect(audioCtx.destination);
-  }
-
-  // iOS Safari requires resume inside a user gesture
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume().catch(err => console.warn("AudioContext resume failed:", err));
-  }
-}
-
-
-function stop(){
-  if (currentSource){
-    try{ currentSource.stop(); } catch(e){}
-    currentSource.disconnect();
-    currentSource = null;
-  }
-  isPlaying = false;
-}
-
-function removeSelected(){
-  if (selectedIndex < 0) return;
-  songs.splice(selectedIndex, 1);
-  if (selectedIndex >= songs.length) selectedIndex = songs.length - 1;
-  renderList();
-}
-
-async function playSelected(){
-  if (selectedIndex < 0 || selectedIndex >= songs.length) return;
-  const song = songs[selectedIndex];
-  await playUrl(song.url);
-}
-
-async function playUrl(url){
-  stop();
-  ensureAudio();
-  if (audioCtx.state === "suspended") {
-    try { await audioCtx.resume(); } catch(e) { console.warn("Resume failed:", e); }
-  }
-  try{
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('Failed to fetch DFPWM: ' + r.status);
-    const buf = await r.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    const decoder = new DFPWM();
-    const pcm = decoder.decode(bytes); // Float32Array
-
-    // create stereo buffer
-    const len = pcm.length;
-    const audioBuffer = audioCtx.createBuffer(1, len, SAMPLE_RATE);
-    // mono -> buffer
-    audioBuffer.getChannelData(0).set(pcm);
-
-    // create source
-    const src = audioCtx.createBufferSource();
-    src.buffer = audioBuffer;
-    src.connect(gainNode);
-    src.start();
-    currentSource = src;
-    isPlaying = true;
-
-    src.onended = ()=>{ isPlaying = false; currentSource = null; };
-
-  } catch(e){
-    console.error('Playback error:', e);
-    alert('Playback error: ' + e.message);
-  }
-}
-
-// -------------------------
-// Install prompt handling
-// -------------------------
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e)=>{
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.style.display = 'inline-block';
-});
-installBtn.addEventListener('click', async ()=>{
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const choice = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  installBtn.style.display = 'none';
-});
-
-// -------------------------
-// Service worker registration
-// -------------------------
-if ('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>{
-    console.log('Service worker registered');
-  }).catch((err)=>{ console.warn('SW registration failed:', err); });
-}
-
-fetchSongs();
-
-</script>
-
+  <script src="script.js"></script>
 </body>
-
 </html>
