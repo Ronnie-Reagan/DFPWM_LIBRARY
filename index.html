@@ -8,77 +8,93 @@
   <link rel="manifest" href="manifest.json" />
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #ffffff;
-      --card-muted: #f4f6fb;
-      --accent: #2563eb;
-      --accent-dark: #1d4ed8;
-      --border: #d9e0f2;
-      --text: #0f172a;
-      --muted: #5b6478;
-      --radius: 14px;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
+      --accent: #007bff;
+      --accent-dark: #0052cc;
+      --border: #ddd;
+      --text: #111;
+      --muted: #666;
+      --radius: 8px;
+      --bg: #fafafa;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     body {
       margin: 0;
-      padding: 24px clamp(12px, 4vw, 36px) 80px;
-      background: radial-gradient(circle at top, rgba(37, 99, 235, 0.15), rgba(15, 23, 42, 1) 65%), var(--bg);
-      min-height: 100vh;
+      padding: 0;
       color: var(--text);
+      background: var(--bg);
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
     }
 
-    .app {
-      max-width: 1180px;
-      margin: 0 auto;
+    header, footer {
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.9rem;
     }
 
-    .app-header {
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      height: calc(100vh - 100px); /* approx height excluding header/footer */
+    }
+
+    .list-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 75vh;
+      padding: 1vh 1vw;
+      box-sizing: border-box;
+    }
+
+    .list-title {
+      margin: 0 0 0.5vh 0;
+      font-weight: bold;
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    .song-list {
+      flex: 1;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.5vh 0.5vw;
+    }
+
+    .song {
+      padding: 0.4vh 0.6vw;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .song:hover {
+      background: #f5f8ff;
+    }
+    .song.active {
+      background: #e6edff;
+    }
+
+    .controls {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 16px;
-      color: white;
-      margin-bottom: 24px;
-    }
-
-    .eyebrow {
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.2em;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    h1 {
-      font-size: clamp(1.6rem, 4vw, 2.75rem);
-      margin: 8px 0;
-    }
-
-    .header-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
+      justify-content: center;
+      gap: 0.6vw;
+      margin: 1vh auto;
     }
 
     button {
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 999px;
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.12);
-      color: white;
-      font-weight: 500;
+      padding: 0.4vh 1vw;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      background: #f7f7f7;
       cursor: pointer;
-      transition: transform 0.1s ease, background 0.2s ease, border-color 0.2s;
-    }
-
-    button:hover {
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.18);
+      transition: background 0.2s;
     }
 
     button.accent {
@@ -91,139 +107,13 @@
       background: #f8fafc;
     }
 
-    main {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 18px;
-    }
-
-    .card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 20px;
-      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
-      min-height: 200px;
+    .volume-wrapper {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .card h2 {
-      margin: 0;
-      font-size: 1rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .now-playing-title {
-      font-size: 1.4rem;
-      margin: 0;
-    }
-
-    .meta {
-      display: flex;
-      justify-content: space-between;
-      color: var(--muted);
-      font-size: 0.9rem;
-      flex-wrap: wrap;
-    }
-
-    .progress {
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--card-muted);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .progress span {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-      width: 0%;
-      transition: width 0.1s linear;
-    }
-
-    .transport {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 10px;
-    }
-
-    .transport button {
-      color: var(--text);
-      border-color: var(--border);
-      background: white;
-    }
-
-    .transport button.primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-
-    .queue-list,
-    .library-list,
-    .downloads-list {
-      flex: 1;
-      overflow-y: auto;
-      min-height: 180px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 4px;
-      background: var(--card-muted);
-    }
-
-    .item {
-      background: white;
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
       align-items: center;
-      border: 1px solid transparent;
-      cursor: pointer;
+      gap: 0.5vw;
+      padding: 1vh 1vw;
     }
-
-    .item.active {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-    }
-
-    .item-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--text);
-    }
-
-    .item button {
-      border-radius: 8px;
-      border-color: var(--border);
-      color: var(--text);
-      background: var(--card-muted);
-    }
-
-    .tag {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    .pill {
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(37, 99, 235, 0.1);
-      color: var(--accent-dark);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    input,
-    select {
+    .volume {
       width: 100%;
       border-radius: 10px;
       border: 1px solid var(--border);
@@ -232,120 +122,60 @@
       font-family: inherit;
     }
 
-    .volume-range {
-      width: 100%;
+    #progress {
+      height: 1vh;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0 1vw;
     }
-
-    footer {
-      color: rgba(255, 255, 255, 0.6);
-      text-align: center;
-      margin-top: 32px;
-      font-size: 0.9rem;
-    }
-
-    @media (max-width: 640px) {
-      .transport {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .header-actions {
-        justify-content: stretch;
-      }
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.1s linear;
     }
   </style>
 </head>
-<body data-view="main">
-  <div class="app">
-    <header class="app-header">
-      <div>
-        <div class="eyebrow">Beta stream · R2 backed</div>
-        <h1>DFPWM Radio</h1>
-        <p>Queue, shuffle or repeat the community playlist, cache tracks for offline play, and keep the music running in a pop-out window.</p>
-      </div>
-      <div class="header-actions">
-        <button id="legacyBtn">Open legacy client</button>
-        <button id="popoutBtn">Pop-out player</button>
-        <button id="installBtn" class="accent">Install app</button>
-      </div>
-    </header>
+<body>
+  <header>
+    <h1>Don's DFPWM Jukebox</h1>
+    <div class="controls">
+      <button id="refreshBtn">Refresh Public List</button>
+      <button id="installBtn">Install App</button>
+    </div>
+  </header>
 
-    <main>
-      <section class="card">
-        <h2>Now Playing</h2>
-        <p class="now-playing-title" id="nowTitle">Nothing queued</p>
-        <div class="meta">
-          <span id="nowStatus">Idle</span>
-          <span id="nowCacheState" class="pill">Offline disabled</span>
-        </div>
+  <main>
+    <div class="list-container">
+      <div class="list-title">Public Songs</div>
+      <div id="list-public" class="song-list" aria-label="Public song list"></div>
+    </div>
 
-        <div class="progress" aria-label="song progress">
-          <span id="progressFill"></span>
-        </div>
-        <div class="meta">
-          <span id="elapsed">0:00</span>
-          <span id="duration">0:00</span>
-        </div>
+    <div class="list-container">
+      <div class="list-title">Local Library</div>
+      <div id="list-local" class="song-list" aria-label="Local library list"></div>
+    </div>
+  </main>
 
-        <div>
-          <label for="volume" class="tag">Volume</label>
-          <input id="volume" class="volume-range" type="range" min="0" max="1" step="0.01" value="0.75">
-        </div>
-
-        <div class="transport">
-          <button id="prevBtn">⏮ Prev</button>
-          <button id="playPauseBtn" class="primary">▶ Play</button>
-          <button id="nextBtn">⏭ Skip</button>
-          <button id="stopBtn">⏹ Stop</button>
-          <button id="shuffleBtn">🔀 Shuffle</button>
-          <button id="repeatBtn">🔁 Repeat: Off</button>
-        </div>
-
-        <div class="transport">
-          <button id="cacheToggleBtn">⬇ Cache Track</button>
-          <button id="clearQueueBtn">🗑 Clear Queue</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Up Next</h2>
-        <div class="meta">
-          <span id="queueSummary" class="tag">Queue empty</span>
-          <button id="shuffleQueueBtn">Shuffle queue</button>
-        </div>
-        <div id="queueList" class="queue-list" aria-live="polite"></div>
-      </section>
-
-      <section class="card">
-        <h2>Library</h2>
-        <div>
-          <div class="meta" style="margin-bottom:8px;">
-            <span id="libraryCount" class="tag">loading…</span>
-            <div style="display:flex;gap:8px;">
-              <button id="refreshBtn">Refresh</button>
-              <button id="queueAllBtn">Queue all</button>
-            </div>
-          </div>
-          <input id="filterInput" type="search" placeholder="Search title…" />
-        </div>
-        <div id="libraryList" class="library-list"></div>
-      </section>
-
-      <section class="card">
-        <h2>Offline Cache</h2>
-        <p class="tag">Keep tracks offline for flight mode listening. Storage usage updates automatically.</p>
-        <div class="meta">
-          <button id="downloadAllBtn">Cache everything</button>
-          <button id="purgeCacheBtn">Clear cache</button>
-        </div>
-        <div id="downloadsList" class="downloads-list"></div>
-      </section>
-    </main>
-
-    <footer>
-      Independent DFPWM decoder · Works with Media Session controls · Source chain: WebM → MP3 → DFPWM.
-      Double check audio levels when using headphones.
-    </footer>
+  <div class="controls">
+    <button id="playBtn" class="primary">Play Selected</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="stopBtn">Stop</button>
+    <button id="removeBtn">Remove</button>
+    <button id="cacheBtn">Cache Selected</button>
   </div>
+
+  <div class="volume-wrapper">
+    <label for="volume">Volume</label>
+    <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
+  </div>
+
+  <div id="progress"><div id="bar"></div></div>
+
+  <footer>
+    <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM → MP3 → DFPWM.</p>
+  </footer>
 
   <audio id="audio" preload="auto" playsinline></audio>
   <script type="module" src="script.js"></script>
