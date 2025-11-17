@@ -4,10 +4,7 @@ const SONGS_JSON_URL = 'https://pub-050fb801777b4853a0c36256d7ab9b36.r2.dev/song
 const APP_SHELL = [
   './',
   'index.html',
-  'popout.html',
-  'legacy.html',
   'script.js',
-  'legacy.js',
   'manifest.json',
   'icon.png',
 ];
