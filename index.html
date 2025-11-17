@@ -3,174 +3,351 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DFPWM Jukebox</title>
+  <meta name="theme-color" content="#0f172a" />
+  <title>DFPWM Radio</title>
   <link rel="manifest" href="manifest.json" />
-
   <style>
-    /* =====================
-       Base Layout
-    ====================== */
     :root {
-      --accent: #007bff;
-      --accent-dark: #0052cc;
-      --border: #ddd;
-      --text: #111;
-      --muted: #666;
-      --radius: 8px;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --bg: #0f172a;
+      --card: #ffffff;
+      --card-muted: #f4f6fb;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --border: #d9e0f2;
+      --text: #0f172a;
+      --muted: #5b6478;
+      --radius: 14px;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      max-width: 900px;
-      margin: 24px auto;
-      padding: 16px;
+      margin: 0;
+      padding: 24px clamp(12px, 4vw, 36px) 80px;
+      background: radial-gradient(circle at top, rgba(37, 99, 235, 0.15), rgba(15, 23, 42, 1) 65%), var(--bg);
+      min-height: 100vh;
       color: var(--text);
-      background: #fafafa;
-      line-height: 1.5;
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 16px;
+      color: white;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: rgba(255, 255, 255, 0.7);
     }
 
     h1 {
-      font-size: 1.4rem;
-      margin-bottom: 12px;
-      text-align: center;
+      font-size: clamp(1.6rem, 4vw, 2.75rem);
+      margin: 8px 0;
     }
 
-    footer {
-      margin-top: 16px;
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.2s ease, border-color 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    button.accent {
+      background: white;
+      color: var(--bg);
+      border-color: white;
+    }
+
+    button.accent:hover {
+      background: #f8fafc;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .now-playing-title {
+      font-size: 1.4rem;
+      margin: 0;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
       color: var(--muted);
       font-size: 0.9rem;
-      text-align: center;
-    }
-
-    /* =====================
-       Buttons and Controls
-    ====================== */
-    button {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #bbb;
-      background: #f7f7f7;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
-    }
-    button:hover {
-      background: #f0f0f0;
-    }
-    button.primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent-dark);
-    }
-    button.primary:hover {
-      background: var(--accent-dark);
-    }
-    .controls {
-      display: flex;
-      gap: 8px;
       flex-wrap: wrap;
     }
 
-    /* =====================
-       Song List
-    ====================== */
-    #list {
+    .progress {
       width: 100%;
-      height: 320px;
-      border: 1px solid var(--border);
-      overflow-y: auto;
-      padding: 8px;
-      border-radius: var(--radius);
-      background: white;
-    }
-
-    .song {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 8px;
-      border-bottom: 1px solid #f0f0f0;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.15s;
-    }
-    .song:hover {
-      background: #f8f8f8;
-    }
-    .song.active {
-      background: #e6edff;
-    }
-
-    /* =====================
-       Volume + Progress
-    ====================== */
-    .volume {
-      width: 100%;
-    }
-
-    #progress {
-      width: 100%;
-      height: 8px;
-      background: #ddd;
-      border-radius: 4px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--card-muted);
       overflow: hidden;
-      margin-top: 8px;
+      position: relative;
     }
 
-    #bar {
-      height: 100%;
+    .progress span {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-dark));
       width: 0%;
-      background: var(--accent);
       transition: width 0.1s linear;
     }
 
-    /* =====================
-       Responsive Layout
-    ====================== */
-    @media (max-width: 600px) {
-      .controls {
-        flex-direction: column;
-        align-items: stretch;
+    .transport {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+    }
+
+    .transport button {
+      color: var(--text);
+      border-color: var(--border);
+      background: white;
+    }
+
+    .transport button.primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .queue-list,
+    .library-list,
+    .downloads-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 180px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      background: var(--card-muted);
+    }
+
+    .item {
+      background: white;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .item.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .item-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .item button {
+      border-radius: 8px;
+      border-color: var(--border);
+      color: var(--text);
+      background: var(--card-muted);
+    }
+
+    .tag {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--accent-dark);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .volume-range {
+      width: 100%;
+    }
+
+    footer {
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 640px) {
+      .transport {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .header-actions {
+        justify-content: stretch;
       }
     }
   </style>
 </head>
-
-<body>
-  <header>
-    <h1>Dons DFPWM Jukebox</h1>
-    <div class="controls" style="justify-content:center;margin-bottom:12px;">
-      <button id="refreshBtn">Refresh Song List</button>
-      <button id="installBtn">Install to Desktop</button>
-    </div>
-  </header>
-
-  <main>
-    <section id="songList">
-      <div id="list" aria-label="Song list"></div>
-    </section>
-
-    <section style="margin-top:16px;">
-      <div class="controls">
-        <button id="playBtn" class="primary">Play Selected</button>
-        <button id="pauseBtn">Pause</button>
-        <button id="stopBtn">Stop</button>
-        <button id="removeBtn">Remove Selected</button>
+<body data-view="main">
+  <div class="app">
+    <header class="app-header">
+      <div>
+        <div class="eyebrow">Beta stream · R2 backed</div>
+        <h1>DFPWM Radio</h1>
+        <p>Queue, shuffle or repeat the community playlist, cache tracks for offline play, and keep the music running in a pop-out window.</p>
       </div>
-
-      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;">
-        <label for="volume" style="white-space:nowrap;">Volume</label>
-        <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
+      <div class="header-actions">
+        <button id="legacyBtn">Open legacy client</button>
+        <button id="popoutBtn">Pop-out player</button>
+        <button id="installBtn" class="accent">Install app</button>
       </div>
+    </header>
 
-      <div id="progress"><div id="bar"></div></div>
-    </section>
-  </main>
+    <main>
+      <section class="card">
+        <h2>Now Playing</h2>
+        <p class="now-playing-title" id="nowTitle">Nothing queued</p>
+        <div class="meta">
+          <span id="nowStatus">Idle</span>
+          <span id="nowCacheState" class="pill">Offline disabled</span>
+        </div>
 
-  <footer>
-    Independent DFPWM decoder written in JavaScript, using the browser's Web Audio API.<br>
-    Source chain: WebM -> MP3 -> DFPWM.
-  </footer>
+        <div class="progress" aria-label="song progress">
+          <span id="progressFill"></span>
+        </div>
+        <div class="meta">
+          <span id="elapsed">0:00</span>
+          <span id="duration">0:00</span>
+        </div>
 
-  <script src="script.js"></script>
+        <div>
+          <label for="volume" class="tag">Volume</label>
+          <input id="volume" class="volume-range" type="range" min="0" max="1" step="0.01" value="0.75">
+        </div>
+
+        <div class="transport">
+          <button id="prevBtn">⏮ Prev</button>
+          <button id="playPauseBtn" class="primary">▶ Play</button>
+          <button id="nextBtn">⏭ Skip</button>
+          <button id="stopBtn">⏹ Stop</button>
+          <button id="shuffleBtn">🔀 Shuffle</button>
+          <button id="repeatBtn">🔁 Repeat: Off</button>
+        </div>
+
+        <div class="transport">
+          <button id="cacheToggleBtn">⬇ Cache Track</button>
+          <button id="clearQueueBtn">🗑 Clear Queue</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Up Next</h2>
+        <div class="meta">
+          <span id="queueSummary" class="tag">Queue empty</span>
+          <button id="shuffleQueueBtn">Shuffle queue</button>
+        </div>
+        <div id="queueList" class="queue-list" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2>Library</h2>
+        <div>
+          <div class="meta" style="margin-bottom:8px;">
+            <span id="libraryCount" class="tag">loading…</span>
+            <div style="display:flex;gap:8px;">
+              <button id="refreshBtn">Refresh</button>
+              <button id="queueAllBtn">Queue all</button>
+            </div>
+          </div>
+          <input id="filterInput" type="search" placeholder="Search title…" />
+        </div>
+        <div id="libraryList" class="library-list"></div>
+      </section>
+
+      <section class="card">
+        <h2>Offline Cache</h2>
+        <p class="tag">Keep tracks offline for flight mode listening. Storage usage updates automatically.</p>
+        <div class="meta">
+          <button id="downloadAllBtn">Cache everything</button>
+          <button id="purgeCacheBtn">Clear cache</button>
+        </div>
+        <div id="downloadsList" class="downloads-list"></div>
+      </section>
+    </main>
+
+    <footer>
+      Independent DFPWM decoder · Works with Media Session controls · Source chain: WebM → MP3 → DFPWM.
+      Double check audio levels when using headphones.
+    </footer>
+  </div>
+
+  <audio id="audio" preload="auto" playsinline></audio>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
