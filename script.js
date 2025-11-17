@@ -15,7 +15,6 @@ class DFPWM {
     this.flastlevel = 0;
     this.lpflevel = 0;
 
-    // constants
     this.RESP_PREC = 10;
     this.LPF_STRENGTH = 140;
     this.MIN_RESPONSE = 2 << (this.RESP_PREC - 8);
@@ -35,11 +34,9 @@ class DFPWM {
         const bit = (byte & 1) !== 0;
         const target = bit ? 127 : -128;
 
-        // Integrator
         level += ((response * (target - level) + RESP_HALF) >> RESP_PREC);
         if (level === target - 1) level++;
 
-        // Adaptive response
         const same = bit === lastbit;
         const rtarget = same ? MAX_RESPONSE : 0;
         if (response !== rtarget) {
@@ -47,7 +44,6 @@ class DFPWM {
           response = Math.min(Math.max(response, MIN_RESPONSE), MAX_RESPONSE);
         }
 
-        // Low-pass
         const blended = same ? level : ((flastlevel + level + 1) >> 1);
         flastlevel = level;
         lpflevel += ((LPF_STRENGTH * (blended - lpflevel) + 0x80) >> 8);
@@ -57,24 +53,27 @@ class DFPWM {
       }
     }
 
-    // persist state
     Object.assign(this, { response, level, lastbit, flastlevel, lpflevel });
     return out.subarray(0, pos);
   }
 }
 
 // ==============================
-// UI + Global State
+// Globals
 // ==============================
-let songs = [];
+let publicSongs = [];
+let localSongs = [];
+let selectedList = 'public';
 let selectedIndex = -1;
 
-const listEl = document.getElementById('list');
+const listPublicEl = document.getElementById('list-public');
+const listLocalEl = document.getElementById('list-local');
 const refreshBtn = document.getElementById('refreshBtn');
 const playBtn = document.getElementById('playBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const removeBtn = document.getElementById('removeBtn');
+const cacheBtn = document.getElementById('cacheBtn');
 const volumeEl = document.getElementById('volume');
 const barEl = document.getElementById('bar');
 const installBtn = document.getElementById('installBtn');
@@ -130,10 +129,11 @@ function pause() {
 // Playback
 // ==============================
 async function playSelected() {
-  if (selectedIndex < 0 || selectedIndex >= songs.length) return;
+  const list = selectedList === 'public' ? publicSongs : localSongs;
+  if (selectedIndex < 0 || selectedIndex >= list.length) return;
   stop();
   ensureAudio();
-  await playUrlStreamed(songs[selectedIndex].url);
+  await playUrlStreamed(list[selectedIndex].url);
 }
 
 async function playUrlStreamed(url) {
@@ -196,7 +196,7 @@ function updateProgress() {
 }
 
 // ==============================
-// UI and Data
+// UI
 // ==============================
 function cleanTitle(raw) {
   try {
@@ -205,45 +205,64 @@ function cleanTitle(raw) {
   } catch { return raw; }
 }
 
-function renderList() {
-  listEl.innerHTML = '';
-  songs.forEach((s, i) => {
+function renderList(target, songsArr, listName) {
+  target.innerHTML = '';
+  songsArr.forEach((s, i) => {
     const div = document.createElement('div');
-    div.className = 'song' + (i === selectedIndex ? ' active' : '');
+    div.className = 'song' + (selectedList === listName && i === selectedIndex ? ' active' : '');
     div.textContent = cleanTitle(s.title || s.url);
-    div.onclick = () => { selectedIndex = i; renderList(); };
-    listEl.appendChild(div);
+    div.onclick = () => {
+      selectedList = listName;
+      selectedIndex = i;
+      renderLists();
+    };
+    target.appendChild(div);
   });
+}
+
+function renderLists() {
+  renderList(listPublicEl, publicSongs, 'public');
+  renderList(listLocalEl, localSongs, 'local');
 }
 
 async function fetchSongs() {
   try {
     const res = await fetch(SONGS_JSON_URL);
-    songs = await res.json();
-    selectedIndex = songs.length > 0 ? 0 : -1;
-    renderList();
+    publicSongs = await res.json();
+    selectedIndex = publicSongs.length > 0 ? 0 : -1;
+    renderLists();
   } catch (e) {
-    listEl.innerHTML = `<div style="padding:12px;color:#a00">Failed to fetch songs: ${e.message}</div>`;
+    listPublicEl.innerHTML = `<div style="padding:12px;color:#a00">Failed to fetch songs: ${e.message}</div>`;
   }
 }
 
 // ==============================
-// Event Bindings
+// Bindings
 // ==============================
-volumeEl.oninput = () => { if (gainNode) gainNode.gain.value = parseFloat(volumeEl.value); };
+volumeEl.oninput = () => {
+  if (gainNode) gainNode.gain.value = parseFloat(volumeEl.value);
+};
 refreshBtn.onclick = fetchSongs;
 playBtn.onclick = playSelected;
 pauseBtn.onclick = pause;
 stopBtn.onclick = stop;
 removeBtn.onclick = () => {
   if (selectedIndex < 0) return;
-  songs.splice(selectedIndex, 1);
-  if (selectedIndex >= songs.length) selectedIndex--;
-  renderList();
+  const list = selectedList === 'public' ? publicSongs : localSongs;
+  list.splice(selectedIndex, 1);
+  if (selectedIndex >= list.length) selectedIndex--;
+  renderLists();
+};
+
+cacheBtn.onclick = async () => {
+  if (selectedList !== 'public' || selectedIndex < 0) return;
+  const song = publicSongs[selectedIndex];
+  if (!localSongs.find(s => s.url === song.url)) localSongs.push(song);
+  renderLists();
 };
 
 // ==============================
-// Install + Service Worker
+// Install Prompt
 // ==============================
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
