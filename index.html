@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DFPWM Jukebox</title>
+  <meta name="theme-color" content="#0f172a" />
+  <title>DFPWM Radio</title>
   <link rel="manifest" href="manifest.json" />
   <style>
     :root {
@@ -95,13 +96,15 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button.primary {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent-dark);
+
+    button.accent {
+      background: white;
+      color: var(--bg);
+      border-color: white;
     }
-    button.primary:hover {
-      background: var(--accent-dark);
+
+    button.accent:hover {
+      background: #f8fafc;
     }
 
     .volume-wrapper {
@@ -112,6 +115,11 @@
     }
     .volume {
       width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      font-size: 1rem;
+      font-family: inherit;
     }
 
     #progress {
@@ -169,6 +177,7 @@
     <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM → MP3 → DFPWM.</p>
   </footer>
 
-  <script src="script.js"></script>
+  <audio id="audio" preload="auto" playsinline></audio>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
