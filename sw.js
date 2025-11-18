@@ -7,12 +7,14 @@ const SONGS_JSON_URL = 'https://pub-050fb801777b4853a0c36256d7ab9b36.r2.dev/song
 
 // IMPORTANT: use absolute paths for better cross-platform behavior.
 const APP_SHELL = [
-  '/',            // main entry / navigation fallback
-  '/index.html',
-  '/script.js',
-  '/manifest.json',
-  '/icon.png',
+  '/DFPWM_LIBRARY/',
+  '/DFPWM_LIBRARY/index.html',
+  '/DFPWM_LIBRARY/script.js',
+  '/DFPWM_LIBRARY/manifest.json',
+  '/DFPWM_LIBRARY/icon.png',
+  '/DFPWM_LIBRARY/sw.js'
 ];
+
 
 // ==============================
 // Install — precache app shell
@@ -62,19 +64,22 @@ const isSongAsset = url => {
 async function handleNavigation(request) {
   const cache = await caches.open(APP_CACHE);
 
-  // Try cached index first (offline-first SPA behavior)
-  const cached = await cache.match('/index.html');
+  // Path to your real entry file on GitHub Pages
+  const INDEX_PATH = '/DFPWM_LIBRARY/index.html';
+
+  // Offline-first: return from cache if present
+  const cached = await cache.match(INDEX_PATH);
   if (cached) return cached;
 
-  // If not cached (first load with network), fetch and cache
+  // Not in cache → try network
   try {
-    const resp = await fetch('/index.html', { cache: 'no-store' });
+    const resp = await fetch(INDEX_PATH, { cache: 'no-store' });
     if (resp && resp.ok) {
-      cache.put('/index.html', resp.clone());
+      cache.put(INDEX_PATH, resp.clone());
     }
     return resp;
   } catch (err) {
-    // No cache, network failed → hard offline failure
+    // No network + not cached = initial offline fail
     return new Response(
       '<h1>Offline</h1><p>The app shell is not cached yet.</p>',
       { status: 503, headers: { 'Content-Type': 'text/html' } }
