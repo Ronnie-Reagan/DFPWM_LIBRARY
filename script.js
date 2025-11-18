@@ -139,8 +139,10 @@ async function playSelected() {
 }
 
 async function playUrlStreamed(url) {
-  const res = await fetch(url);
+  // Important for offline: force the browser to try cache first.
+  const res = await fetch(url, { cache: "force-cache" });
   if (!res.ok) throw new Error('HTTP ' + res.status);
+
   const reader = res.body.getReader();
   const decoder = new DFPWM();
   const chunks = [];
@@ -230,7 +232,7 @@ function renderLists() {
 
 async function fetchSongs() {
   try {
-    const res = await fetch(SONGS_JSON_URL);
+    const res = await fetch(SONGS_JSON_URL, { cache: "force-cache" });
     publicSongs = await res.json();
     hydrateLocalSongsFromPublic();
     selectedIndex = publicSongs.length > 0 ? 0 : -1;
@@ -285,21 +287,28 @@ function inferSongMetadata(url) {
   return { url, title: cleanTitle(fileName) };
 }
 
+// ==============================
+// NEW — SW-DRIVEN SONG CACHING
+// ==============================
 async function cacheSongAsset(song) {
   if (!song?.url) return;
-  if (!('caches' in window)) {
-    // Fallback: fetching still lets the SW populate its caches, if available.
-    await fetch(song.url);
+
+  // Ensure SW is controlling the page after first load
+  if (!navigator.serviceWorker.controller) {
+    alert("Reload the page once to enable offline caching.");
     return;
   }
-  const cache = await caches.open(SONG_CACHE_NAME);
-  const existing = await cache.match(song.url);
-  if (existing) return;
-  const response = await fetch(song.url);
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  await cache.put(song.url, response.clone());
+
+  // Ask SW to download + cache the song
+  navigator.serviceWorker.controller.postMessage({
+    type: "CACHE_SONG_URL",
+    url: song.url
+  });
 }
 
+// ==============================
+// CACHE REMOVAL (still OK to use Cache API)
+// ==============================
 async function removeSongFromCache(song) {
   if (!song?.url || !('caches' in window)) return;
   try {
@@ -310,6 +319,9 @@ async function removeSongFromCache(song) {
   }
 }
 
+// ==============================
+// LOCAL SONG SYNC
+// ==============================
 async function syncLocalSongsWithCache() {
   if (!('caches' in window)) return false;
   try {
@@ -317,8 +329,10 @@ async function syncLocalSongsWithCache() {
     const requests = await cache.keys();
     const cachedUrls = requests.map(r => r.url).filter(isSongUrl);
     const cachedSet = new Set(cachedUrls);
-    const existingMap = new Map(localSongs.map(song => [song.url, song]));
+
     const beforeLength = localSongs.length;
+    const existingMap = new Map(localSongs.map(song => [song.url, song]));
+
     localSongs = localSongs.filter(song => cachedSet.has(song.url));
     let changed = localSongs.length !== beforeLength;
 
@@ -342,13 +356,14 @@ function hydrateLocalSongsFromPublic() {
   if (!publicSongs.length || !localSongs.length) return;
   const publicMap = new Map(publicSongs.map(song => [song.url, song]));
   let changed = false;
+
   localSongs = localSongs.map(song => {
     const match = publicMap.get(song.url);
     if (!match) return song;
+
     const merged = { ...song, ...match };
     if (!changed) {
-      const keys = Object.keys(merged);
-      for (const key of keys) {
+      for (const key in merged) {
         if (merged[key] !== song[key]) {
           changed = true;
           break;
@@ -357,6 +372,7 @@ function hydrateLocalSongsFromPublic() {
     }
     return merged;
   });
+
   if (changed) saveLocalSongs();
 }
 
@@ -366,31 +382,37 @@ function hydrateLocalSongsFromPublic() {
 volumeEl.oninput = () => {
   if (gainNode) gainNode.gain.value = parseFloat(volumeEl.value);
 };
+
 refreshBtn.onclick = fetchSongs;
 playBtn.onclick = playSelected;
 pauseBtn.onclick = pause;
 stopBtn.onclick = stop;
+
 removeBtn.onclick = async () => {
   if (selectedIndex < 0) return;
   const list = selectedList === 'public' ? publicSongs : localSongs;
   const [removed] = list.splice(selectedIndex, 1);
+
   if (selectedList === 'local' && removed) {
     await removeSongFromCache(removed);
     saveLocalSongs();
   }
+
   if (selectedIndex >= list.length) selectedIndex--;
   renderLists();
 };
 
 cacheBtn.onclick = async () => {
   if (selectedList !== 'public' || selectedIndex < 0) return;
+
   const song = publicSongs[selectedIndex];
   cacheBtn.disabled = true;
+
   try {
     await cacheSongAsset(song);
     await syncLocalSongsWithCache();
   } catch (err) {
-    alert('Failed to cache song. Please check your connection and try again.');
+    alert('Failed to cache song. Please check your connection.');
     console.error('Failed to cache song', err);
   } finally {
     cacheBtn.disabled = false;
@@ -416,6 +438,9 @@ installBtn.onclick = async () => {
   installBtn.style.display = 'none';
 };
 
+// ==============================
+// Service Worker Registration
+// ==============================
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log('SW registered'))
@@ -428,7 +453,9 @@ if ('serviceWorker' in navigator) {
 (async function init() {
   loadLocalSongs();
   renderLists();
+
   const updated = await syncLocalSongsWithCache();
   if (updated) renderLists();
+
   fetchSongs();
 })();
