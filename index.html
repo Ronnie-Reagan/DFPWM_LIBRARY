@@ -7,13 +7,13 @@
   <link rel="manifest" href="manifest.json" />
   <style>
     :root {
-      --accent: #007bff;
-      --accent-dark: #0052cc;
-      --border: #ddd;
-      --text: #111;
+      --accent: #ff0000;
+      --accent-dark: #c70000;
+      --border: #ff0000;
+      --text: #16ff0e;
       --muted: #666;
       --radius: 8px;
-      --bg: #fafafa;
+      --bg: #1d1d1d;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
@@ -60,7 +60,7 @@
       flex: 1;
       height: 60vh;
       overflow-y: auto;
-      background: white;
+      background: #666;
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 0.5vh 0.5vw;
@@ -68,15 +68,15 @@
 
     .song {
       padding: 0.4vh 0.6vw;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid #ff0000;
       cursor: pointer;
       border-radius: 4px;
     }
     .song:hover {
-      background: #f5f8ff;
+      background: #ff000091;
     }
     .song.active {
-      background: #e6edff;
+      background: #ff0000b6;
     }
 
     .controls {
@@ -90,18 +90,22 @@
     button {
       padding: 0.4vh 1vw;
       border-radius: 6px;
-      border: 1px solid #bbb;
-      background: #f7f7f7;
+      border: 1px solid #1d1d1d;
+      background: #ce0000;
       cursor: pointer;
       transition: background 0.2s;
     }
     button.primary {
-      background: var(--accent);
-      color: white;
+      background: var(--accent-dark);
+      color: rgb(0, 0, 0);
       border-color: var(--accent-dark);
     }
     button.primary:hover {
-      background: var(--accent-dark);
+      background: var(--accent);
+    }
+
+    button:hover {
+      background: var(--accent);
     }
 
     .volume-wrapper {
@@ -116,7 +120,7 @@
 
     #progress {
       height: 1vh;
-      background: #ddd;
+      background: #5eff00;
       border-radius: 4px;
       overflow: hidden;
       margin: 0 1vw;
@@ -166,7 +170,7 @@
   <div id="progress"><div id="bar"></div></div>
 
   <footer>
-    <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM → MP3 → DFPWM.</p>
+    <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM -> MP3 -> DFPWM.</p>
   </footer>
 
   <script src="script.js"></script>

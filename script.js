@@ -88,6 +88,10 @@ let isPaused = false;
 let startTime = 0;
 let pauseOffset = 0;
 let totalDuration = 0;
+let mediaStreamDest = null;
+let mediaElement = null;
+let currentSong = null;
+let mediaSessionBound = false;
 
 // ==============================
 // Audio Control
@@ -97,9 +101,34 @@ function ensureAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
     gainNode = audioCtx.createGain();
     gainNode.gain.value = parseFloat(volumeEl.value);
-    gainNode.connect(audioCtx.destination);
+
+    // Route audio through a hidden media element so mobile browsers
+    // keep playback alive when the tab/app is backgrounded.
+    const canStreamToElement = !!(audioCtx.createMediaStreamDestination && 'srcObject' in new Audio());
+    if (canStreamToElement) {
+      mediaStreamDest = audioCtx.createMediaStreamDestination();
+      gainNode.connect(mediaStreamDest);
+
+      mediaElement = new Audio();
+      mediaElement.srcObject = mediaStreamDest.stream;
+      mediaElement.playsInline = true;
+      mediaElement.autoplay = true;
+      mediaElement.muted = false;
+      mediaElement.play().catch(() => {});
+    } else {
+      gainNode.connect(audioCtx.destination);
+    }
+
+    audioCtx.onstatechange = () => {
+      if (audioCtx.state === 'suspended' && isPlaying) {
+        audioCtx.resume().catch(() => {});
+      }
+    };
   }
   if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  if (mediaElement && mediaElement.paused) {
+    mediaElement.play().catch(() => {});
+  }
 }
 
 function stop() {
@@ -111,6 +140,8 @@ function stop() {
   isPlaying = false;
   isPaused = false;
   pauseOffset = 0;
+  currentSong = null;
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
   barEl.style.width = '0%';
 }
 
@@ -120,10 +151,12 @@ function pause() {
     audioCtx.suspend();
     isPaused = true;
     pauseOffset = audioCtx.currentTime - startTime;
+    setMediaPlaybackState('paused', pauseOffset);
   } else {
     audioCtx.resume();
     isPaused = false;
     startTime = audioCtx.currentTime - pauseOffset;
+    setMediaPlaybackState('playing', pauseOffset);
   }
 }
 
@@ -135,12 +168,12 @@ async function playSelected() {
   if (selectedIndex < 0 || selectedIndex >= list.length) return;
   stop();
   ensureAudio();
-  await playUrlStreamed(list[selectedIndex].url);
+  await playUrlStreamed(list[selectedIndex]);
 }
 
-async function playUrlStreamed(url) {
+async function playUrlStreamed(song) {
   // Important for offline: force the browser to try cache first.
-  const res = await fetch(url, { cache: "force-cache" });
+  const res = await fetch(song.url, { cache: "force-cache" });
   if (!res.ok) throw new Error('HTTP ' + res.status);
 
   const reader = res.body.getReader();
@@ -156,10 +189,10 @@ async function playUrlStreamed(url) {
     totalSamples += pcm.length;
   }
 
-  playBuffered(chunks, totalSamples);
+  playBuffered(chunks, totalSamples, song);
 }
 
-function playBuffered(chunks, totalSamples) {
+function playBuffered(chunks, totalSamples, song) {
   const audioBuffer = audioCtx.createBuffer(1, totalSamples, SAMPLE_RATE);
   const data = audioBuffer.getChannelData(0);
 
@@ -176,13 +209,18 @@ function playBuffered(chunks, totalSamples) {
   src.start();
 
   startTime = audioCtx.currentTime;
+  pauseOffset = 0;
   currentSource = src;
   isPlaying = true;
   isPaused = false;
+  currentSong = song || null;
+  setMediaMetadata(song);
+  setMediaPlaybackState('playing', 0);
 
   src.onended = () => {
     isPlaying = false;
     currentSource = null;
+    setMediaPlaybackState('none', totalDuration);
     barEl.style.width = '0%';
   };
 
@@ -191,13 +229,72 @@ function playBuffered(chunks, totalSamples) {
 
 function updateProgress() {
   if (!isPlaying) return;
+  const elapsed = isPaused ? pauseOffset : (audioCtx.currentTime - startTime);
   if (!isPaused) {
-    const elapsed = audioCtx.currentTime - startTime;
     const pct = Math.min(100 * (elapsed / totalDuration), 100);
     barEl.style.width = pct.toFixed(1) + '%';
   }
+  syncMediaPosition(elapsed);
   requestAnimationFrame(updateProgress);
 }
+
+function setMediaMetadata(song) {
+  if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined' || !song) return;
+  const title = song.title || cleanTitle(song.url);
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title,
+    artist: song.artist || 'DFPWM Stream',
+    album: 'DFPWM Jukebox',
+    artwork: [{ src: 'icon.png', sizes: '512x512', type: 'image/png' }]
+  });
+}
+
+function setMediaPlaybackState(state, position = 0) {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.playbackState = state;
+  syncMediaPosition(position);
+}
+
+function syncMediaPosition(positionSeconds) {
+  if (!('mediaSession' in navigator)) return;
+  const setPosition = navigator.mediaSession.setPositionState;
+  if (typeof setPosition === 'function' && totalDuration) {
+    setPosition({
+      duration: totalDuration,
+      playbackRate: 1,
+      position: Math.max(0, Math.min(positionSeconds, totalDuration))
+    });
+  }
+}
+
+function bindMediaControls() {
+  if (!('mediaSession' in navigator) || mediaSessionBound) return;
+  mediaSessionBound = true;
+
+  navigator.mediaSession.setActionHandler('play', () => {
+    if (isPlaying && isPaused) {
+      pause(); // resume
+    } else {
+      playSelected();
+    }
+  });
+  navigator.mediaSession.setActionHandler('pause', () => pause());
+  navigator.mediaSession.setActionHandler('stop', () => stop());
+  navigator.mediaSession.setActionHandler('previoustrack', () => skipTrack(-1));
+  navigator.mediaSession.setActionHandler('nexttrack', () => skipTrack(1));
+}
+
+function skipTrack(delta) {
+  const list = selectedList === 'public' ? publicSongs : localSongs;
+  if (!list.length) return;
+  selectedIndex = (selectedIndex + delta + list.length) % list.length;
+  renderLists();
+  playSelected();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && isPlaying) ensureAudio();
+});
 
 // ==============================
 // UI
@@ -451,6 +548,7 @@ if ('serviceWorker' in navigator) {
 // Init
 // ==============================
 (async function init() {
+  bindMediaControls();
   loadLocalSongs();
   renderLists();
 
