@@ -1,138 +1,165 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DFPWM Jukebox</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-    :root {
-      --accent: #ff0000;
-      --accent-dark: #c70000;
-      --border: #ff0000;
-      --text: #16ff0e;
-      --muted: #666;
-      --radius: 8px;
-      --bg: #1d1d1d;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+:root {
+  --accent: #ff0000;
+  --accent-dark: #c70000;
+  --border: #ff0000;
+  --text: #16ff0e;
+  --muted: #666;
+  --radius: 8px;
+  --bg: #1d1d1d;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
-    body {
-      margin: 0;
-      padding: 0;
-      color: var(--text);
-      background: var(--bg);
-      height: 100vh;
-      width: 100vw;
-      display: flex;
-      flex-direction: column;
-    }
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--text);
+  background: var(--bg);
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
 
-    header, footer {
-      text-align: center;
-      padding: 0.5rem;
-      font-size: 0.9rem;
-    }
+header,
+footer {
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+}
 
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: row;
-      height: 70vh;
-    }
+main {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  overflow: hidden;
+}
 
-    .list-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 1vh 1vw;
-      box-sizing: border-box;
-    }
+/* top lists: two columns */
+#top-lists {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  gap: 1vw;
+  padding: 1vh 1vw;
+  box-sizing: border-box;
+  overflow: hidden;  /* FIXED: child lists scroll instead */
+}
 
-    .list-title {
-      margin: 0 0 0.5vh 0;
-      font-weight: bold;
-      font-size: 1rem;
-      text-align: center;
-    }
+/* queue: full width row */
+#queue-container {
+  height: 20vh;
+  padding: 1vh 1vw;
+  box-sizing: border-box;
+  overflow: hidden;  /* child list scrolls */
+}
 
-    .song-list {
-      flex: 1;
-      height: 60vh;
-      overflow-y: auto;
-      background: #666;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.5vh 0.5vw;
-    }
+/* list containers vertical stack */
+.list-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;  /* required to prevent flex overflow */
+}
 
-    .song {
-      padding: 0.4vh 0.6vw;
-      border-bottom: 1px solid #ff0000;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .song:hover {
-      background: #ff000091;
-    }
-    .song.active {
-      background: #ff0000b6;
-    }
+/* LIST SCROLL FIX */
+.song-list {
+  flex: 1;
+  overflow-y: auto;  /* this scrolls, NOT the parent */
+  background: #666;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5vh 0.5vw;
+}
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.6vw;
-      margin: 1vh auto;
-    }
+/* queue list can be shorter */
+#queue-container .song-list {
+  max-height: 100%; /* fits inside 20vh container */
+}
 
-    button {
-      padding: 0.4vh 1vw;
-      border-radius: 6px;
-      border: 1px solid #1d1d1d;
-      background: #ce0000;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button.primary {
-      background: var(--accent-dark);
-      color: rgb(0, 0, 0);
-      border-color: var(--accent-dark);
-    }
-    button.primary:hover {
-      background: var(--accent);
-    }
+.song {
+  padding: 0.4vh 0.6vw;
+  border-bottom: 1px solid #ff0000;
+  cursor: pointer;
+  border-radius: 4px;
+}
 
-    button:hover {
-      background: var(--accent);
-    }
+.song:hover {
+  background: #ff000091;
+}
 
-    .volume-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.5vw;
-      padding: 1vh 1vw;
-    }
-    .volume {
-      width: 100%;
-    }
+.song.active {
+  background: #ff0000b6;
+}
 
-    #progress {
-      height: 1vh;
-      background: #5eff00;
-      border-radius: 4px;
-      overflow: hidden;
-      margin: 0 1vw;
-    }
-    #bar {
-      height: 100%;
-      width: 0%;
-      background: var(--accent);
-      transition: width 0.1s linear;
-    }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6vw;
+  margin: 1vh auto;
+}
+
+button {
+  padding: 0.4vh 1vw;
+  border-radius: 6px;
+  border: 1px solid #1d1d1d;
+  background: #ce0000;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button.primary {
+  background: var(--accent-dark);
+  color: rgb(0, 0, 0);
+  border-color: var(--accent-dark);
+}
+
+button.primary:hover {
+  background: var(--accent);
+}
+
+button:hover {
+  background: var(--accent);
+}
+
+.volume-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+  padding: 1vh 1vw;
+}
+
+.volume {
+  width: 100%;
+}
+
+#progress {
+  height: 1vh;
+  background: #5eff00;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 1vw;
+}
+
+#bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
   </style>
 </head>
+
 <body>
   <header>
     <h1>Don's DFPWM Jukebox</h1>
@@ -143,14 +170,21 @@
   </header>
 
   <main>
-    <div class="list-container">
-      <div class="list-title">Public Songs</div>
-      <div id="list-public" class="song-list" aria-label="Public song list"></div>
+    <div id="top-lists">
+      <div class="list-container">
+        <div class="list-title">Public Songs</div>
+        <div id="list-public" class="song-list"></div>
+      </div>
+
+      <div class="list-container">
+        <div class="list-title">Local Library</div>
+        <div id="list-local" class="song-list"></div>
+      </div>
     </div>
 
-    <div class="list-container">
-      <div class="list-title">Local Library</div>
-      <div id="list-local" class="song-list" aria-label="Local library list"></div>
+    <div id="queue-container">
+      <div class="list-title">Queue</div>
+      <div id="list-queue" class="song-list"></div>
     </div>
   </main>
 
@@ -158,6 +192,7 @@
     <button id="playBtn" class="primary">Play Selected</button>
     <button id="pauseBtn">Pause</button>
     <button id="stopBtn">Stop</button>
+    <button id="queueAddBtn">Add to Queue</button>
     <button id="removeBtn">Remove</button>
     <button id="cacheBtn">Cache Selected</button>
   </div>
@@ -167,7 +202,9 @@
     <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
   </div>
 
-  <div id="progress"><div id="bar"></div></div>
+  <div id="progress">
+    <div id="bar"></div>
+  </div>
 
   <footer>
     <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM -> MP3 -> DFPWM.</p>
@@ -175,4 +212,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>
