@@ -1,216 +1,688 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0d10" />
   <title>DFPWM Jukebox</title>
   <link rel="manifest" href="manifest.json" />
   <style>
-:root {
-  --accent: #ff0000;
-  --accent-dark: #c70000;
-  --border: #ff0000;
-  --text: #16ff0e;
-  --muted: #666;
-  --radius: 8px;
-  --bg: #1d1d1d;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
+    :root {
+      --bg: #0b0d10;
+      --bg-2: #14181d;
+      --panel: #171b21;
+      --panel-2: #1c222b;
+      --panel-3: #10141a;
+      --text: #edf3ff;
+      --muted: #9faabd;
+      --accent: #7ad0ff;
+      --accent-2: #4da9db;
+      --accent-hover: #92dbff;
+      --accent-2-hover: #64b8e8;
+      --accent-soft: rgba(122, 208, 255, 0.12);
+      --accent-border: rgba(122, 208, 255, 0.24);
+      --ambient: rgba(122, 208, 255, 0.12);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+      --page-max: 1500px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color-scheme: dark;
+    }
 
-body {
-  margin: 0;
-  padding: 0;
-  color: var(--text);
-  background: var(--bg);
-  height: 100vh;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
-}
+    * {
+      box-sizing: border-box;
+      min-width: 0;
+    }
 
-header,
-footer {
-  text-align: center;
-  padding: 0.5rem;
-  font-size: 0.9rem;
-}
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, var(--ambient), transparent 42%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+    }
 
-main {
-  display: flex;
-  flex-direction: column;
-  height: 70vh;
-  overflow: hidden;
-}
+    body {
+      min-height: 100svh;
+    }
 
-/* top lists: two columns */
-#top-lists {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  gap: 1vw;
-  padding: 1vh 1vw;
-  box-sizing: border-box;
-  overflow: hidden;  /* FIXED: child lists scroll instead */
-}
+    button,
+    input,
+    select {
+      font: inherit;
+    }
 
-/* queue: full width row */
-#queue-container {
-  height: 20vh;
-  padding: 1vh 1vw;
-  box-sizing: border-box;
-  overflow: hidden;  /* child list scrolls */
-}
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      color: var(--text);
+      border-radius: 12px;
+      padding: 0.82rem 1rem;
+      cursor: pointer;
+      transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    }
 
-/* list containers vertical stack */
-.list-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;  /* required to prevent flex overflow */
-}
+    button:hover {
+      border-color: var(--accent-border);
+      background: linear-gradient(180deg, var(--panel-2), var(--panel-3));
+      transform: translateY(-1px);
+    }
 
-/* LIST SCROLL FIX */
-.song-list {
-  flex: 1;
-  overflow-y: auto;  /* this scrolls, NOT the parent */
-  background: #666;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.5vh 0.5vw;
-}
+    button:active {
+      transform: translateY(0);
+    }
 
-/* queue list can be shorter */
-#queue-container .song-list {
-  max-height: 100%; /* fits inside 20vh container */
-}
+    button.primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #081018;
+      border-color: transparent;
+      font-weight: 700;
+    }
 
-.song {
-  padding: 0.4vh 0.6vw;
-  border-bottom: 1px solid #ff0000;
-  cursor: pointer;
-  border-radius: 4px;
-}
+    button.primary:hover {
+      background: linear-gradient(180deg, var(--accent-hover), var(--accent-2-hover));
+    }
 
-.song:hover {
-  background: #ff000091;
-}
+    button:disabled {
+      opacity: 0.56;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-.song.active {
-  background: #ff0000b6;
-}
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6vw;
-  margin: 1vh auto;
-}
+    input[type="color"] {
+      inline-size: 3rem;
+      block-size: 3rem;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+    }
 
-button {
-  padding: 0.4vh 1vw;
-  border-radius: 6px;
-  border: 1px solid #1d1d1d;
-  background: #ce0000;
-  cursor: pointer;
-  transition: background 0.2s;
-}
+    .app-shell {
+      width: min(100%, var(--page-max));
+      margin: 0 auto;
+      padding:
+        max(14px, env(safe-area-inset-top))
+        clamp(12px, 2vw, 24px)
+        max(18px, env(safe-area-inset-bottom))
+        clamp(12px, 2vw, 24px);
+      display: grid;
+      gap: 14px;
+    }
 
-button.primary {
-  background: var(--accent-dark);
-  color: rgb(0, 0, 0);
-  border-color: var(--accent-dark);
-}
+    .surface {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
+        linear-gradient(180deg, var(--panel), var(--panel-3));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
 
-button.primary:hover {
-  background: var(--accent);
-}
+    .header {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+    }
 
-button:hover {
-  background: var(--accent);
-}
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-.volume-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.5vw;
-  padding: 1vh 1vw;
-}
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3.1vw, 2.35rem);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
 
-.volume {
-  width: 100%;
-}
+    .brand p {
+      margin: 0.38rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
 
-#progress {
-  height: 1vh;
-  background: #5eff00;
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 0 1vw;
-}
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-#bar {
-  height: 100%;
-  width: 0%;
-  background: var(--accent);
-  transition: width 0.1s linear;
-}
+    .status-strip {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 
+    .stat-card {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, var(--panel-2), var(--panel-3));
+      border: 1px solid var(--border);
+    }
+
+    .stat-card .label {
+      display: block;
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 0.28rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-card .value {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .main-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr;
+    }
+
+    .left-column,
+    .right-column {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-subtitle {
+      margin: 0.22rem 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .library-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr;
+    }
+
+    .list-container {
+      display: grid;
+      grid-template-rows: auto minmax(200px, 1fr);
+      gap: 10px;
+    }
+
+    .list-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .list-badge {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .song-list {
+      overflow: auto;
+      min-height: 200px;
+      max-height: min(46svh, 560px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+        linear-gradient(180deg, var(--panel-2), var(--panel-3));
+      padding: 8px;
+      overscroll-behavior: contain;
+    }
+
+    .song {
+      display: grid;
+      gap: 4px;
+      min-height: 56px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+      word-break: break-word;
+    }
+
+    .song + .song {
+      margin-top: 6px;
+    }
+
+    .song:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    .song.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+    }
+
+    .song-title {
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .song-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.25;
+    }
+
+    .empty-list {
+      padding: 16px 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .transport-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .now-playing-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(180deg, var(--panel-2), var(--panel-3));
+      border: 1px solid var(--border);
+    }
+
+    .now-playing-title {
+      font-size: 1.08rem;
+      font-weight: 800;
+      line-height: 1.12;
+    }
+
+    .now-playing-meta {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .status-row,
+    .time-row,
+    .field-label-row,
+    .theme-row,
+    .queue-header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .field-label-row {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 0.36rem 0.62rem;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+    }
+
+    .status-chip[data-tone="playing"] {
+      background: rgba(34, 197, 94, 0.14);
+      border-color: rgba(34, 197, 94, 0.32);
+    }
+
+    .status-chip[data-tone="paused"] {
+      background: rgba(250, 204, 21, 0.12);
+      border-color: rgba(250, 204, 21, 0.28);
+    }
+
+    .status-chip[data-tone="loading"] {
+      background: rgba(96, 165, 250, 0.12);
+      border-color: rgba(96, 165, 250, 0.28);
+    }
+
+    .status-chip[data-tone="error"] {
+      background: rgba(248, 113, 113, 0.14);
+      border-color: rgba(248, 113, 113, 0.32);
+    }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 0.9rem;
+      flex: 1 1 180px;
+    }
+
+    .time-row {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-size: 0.92rem;
+    }
+
+    .transport-buttons,
+    .queue-actions {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .transport-buttons button:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .field-stack,
+    .progress-shell,
+    .theme-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .theme-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.24);
+    }
+
+    #progress {
+      height: 12px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.1s linear;
+    }
+
+    .footer {
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    @media (min-width: 720px) {
+      .status-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .library-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .transport-buttons,
+      .queue-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .transport-buttons button:first-child {
+        grid-column: auto;
+      }
+    }
+
+    @media (min-width: 1120px) {
+      .main-grid {
+        grid-template-columns: minmax(0, 1.5fr) minmax(340px, 0.82fr);
+        align-items: start;
+      }
+
+      .right-column {
+        position: sticky;
+        top: 14px;
+      }
+
+      .song-list {
+        max-height: min(58svh, 640px);
+      }
+    }
+
+    @media (max-width: 719px) {
+      .app-shell {
+        gap: 12px;
+      }
+
+      .header,
+      .panel,
+      .footer {
+        padding: 12px;
+      }
+
+      .header-actions,
+      .theme-preview {
+        width: 100%;
+      }
+
+      .header-actions button,
+      .queue-header-actions button {
+        flex: 1 1 0;
+      }
+
+      .song-list {
+        min-height: 170px;
+        max-height: 34svh;
+      }
+    }
   </style>
 </head>
-
 <body>
-  <header>
-    <h1>Don's DFPWM Jukebox</h1>
-    <div class="controls">
-      <button id="refreshBtn">Refresh Public List</button>
-      <button id="installBtn">Install App</button>
-    </div>
-  </header>
-
-  <main>
-    <div id="top-lists">
-      <div class="list-container">
-        <div class="list-title">Public Songs</div>
-        <div id="list-public" class="song-list"></div>
+  <div class="app-shell">
+    <header class="header surface">
+      <div class="header-top">
+        <div class="brand">
+          <h1>Don's DFPWM Jukebox</h1>
+          <p>Streaming, caching, queueing, and offline playback in one place.</p>
+        </div>
+        <div class="header-actions">
+          <button id="refreshBtn">Refresh Public List</button>
+          <button id="installBtn" hidden>Install App</button>
+        </div>
       </div>
 
-      <div class="list-container">
-        <div class="list-title">Local Library</div>
-        <div id="list-local" class="song-list"></div>
+      <div class="status-strip">
+        <div class="stat-card">
+          <span class="label">Public</span>
+          <span class="value" id="count-public">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Local</span>
+          <span class="value" id="count-local">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Queue</span>
+          <span class="value" id="count-queue">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Status</span>
+          <span class="value" id="statusSummary">Ready</span>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <div id="queue-container">
-      <div class="list-title">Queue</div>
-      <div id="list-queue" class="song-list"></div>
-    </div>
-  </main>
+    <main class="main-grid">
+      <section class="left-column">
+        <section class="panel surface">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Library</h2>
+              <p class="panel-subtitle">Pick from the public list or your local cached library.</p>
+            </div>
+          </div>
 
-  <div class="controls">
-    <button id="playBtn" class="primary">Play Selected</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="stopBtn">Stop</button>
-    <button id="queueAddBtn">Add to Queue</button>
-    <button id="removeBtn">Remove</button>
-    <button id="cacheBtn">Cache Selected</button>
+          <div class="library-grid">
+            <div class="list-container">
+              <div class="list-title">
+                <span>Public Songs</span>
+                <span class="list-badge" id="publicListBadge">0</span>
+              </div>
+              <div id="list-public" class="song-list"></div>
+            </div>
+
+            <div class="list-container">
+              <div class="list-title">
+                <span>Local Library</span>
+                <span class="list-badge" id="localListBadge">0</span>
+              </div>
+              <div id="list-local" class="song-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel surface">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Queue</h2>
+              <p class="panel-subtitle">Drag songs here, reorder them, or clear the queue.</p>
+            </div>
+            <div class="queue-header-actions">
+              <span class="list-badge" id="queueListBadge">0</span>
+              <button id="clearQueueBtn" type="button">Clear Queue</button>
+            </div>
+          </div>
+          <div id="list-queue" class="song-list"></div>
+        </section>
+      </section>
+
+      <aside class="right-column">
+        <section class="panel surface">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Playback</h2>
+              <p class="panel-subtitle">Transport, queue controls, progress, and theme settings.</p>
+            </div>
+          </div>
+
+          <div class="transport-grid">
+            <div class="now-playing-card">
+              <div>
+                <div class="now-playing-title" id="nowPlayingTitle">Nothing playing</div>
+                <div class="now-playing-meta" id="nowPlayingMeta">Select a song, cache what you want offline, or queue a run.</div>
+              </div>
+              <div class="status-row">
+                <span class="status-chip" id="statusBadge" data-tone="idle">Idle</span>
+                <span class="status-text" id="statusText">Ready.</span>
+              </div>
+              <div class="time-row">
+                <span id="elapsedTime">0:00</span>
+                <span id="durationTime">0:00</span>
+              </div>
+            </div>
+
+            <div class="transport-buttons">
+              <button id="playBtn" class="primary">Play Selected</button>
+              <button id="pauseBtn">Pause</button>
+              <button id="stopBtn">Stop</button>
+            </div>
+
+            <div class="queue-actions">
+              <button id="queueAddBtn">Add to Queue</button>
+              <button id="removeBtn">Remove</button>
+              <button id="cacheBtn">Cache Selected</button>
+            </div>
+
+            <div class="field-stack volume-wrapper">
+              <div class="field-label-row">
+                <label for="volume">Volume</label>
+              </div>
+              <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
+            </div>
+
+            <div class="progress-shell">
+              <div class="field-label-row">
+                <span>Playback progress</span>
+              </div>
+              <div id="progress">
+                <div id="bar"></div>
+              </div>
+            </div>
+
+            <div class="theme-grid">
+              <div class="field-label-row">
+                <span>Theme</span>
+                <span id="themeHint">Main theme colour</span>
+              </div>
+
+              <div class="theme-row">
+                <div class="theme-preview">
+                  <span class="swatch" id="themeSeedSwatch"></span>
+                  <span class="swatch" id="themeBaseSwatch"></span>
+                  <span class="swatch" id="themeAccentSwatch"></span>
+                </div>
+
+                <div class="theme-preview">
+                  <input id="themeColorPicker" type="color" value="#0b0d10" aria-label="Choose theme colour">
+                  <button id="themeResetBtn" type="button">Reset Theme</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer surface">
+      DFPWM streaming player powered by Web Audio API. Source chain: WebM -&gt; MP3 -&gt; DFPWM.
+    </footer>
   </div>
-
-  <div class="volume-wrapper">
-    <label for="volume">Volume</label>
-    <input id="volume" class="volume" type="range" min="0" max="1" step="0.01" value="0.5">
-  </div>
-
-  <div id="progress">
-    <div id="bar"></div>
-  </div>
-
-  <footer>
-    <p>DFPWM streaming player powered by Web Audio API. Source chain: WebM -> MP3 -> DFPWM.</p>
-  </footer>
 
   <script src="script.js"></script>
 </body>
-
 </html>

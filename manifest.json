@@ -1,12 +1,13 @@
 {
   "name": "DFPWM Jukebox",
   "short_name": "Jukebox",
-  "description": "Streams DFPWM audio as an online music service for browsers.",
-  "start_url": "/DFPWM_LIBRARY/",
-  "scope": "/DFPWM_LIBRARY/",
+  "description": "Streams DFPWM audio with queueing and offline caching for browsers.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#1d1d1d",
-  "theme_color": "#ff0000",
+  "background_color": "#0b0d10",
+  "theme_color": "#0f131a",
   "icons": [
     {
       "src": "icon.png",
