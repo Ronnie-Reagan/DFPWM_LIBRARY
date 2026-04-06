@@ -1,3 +1,3 @@
 # DFPWM Radio
 
-Visit the production build at [ronnie-reagan.github.io/DFPWM_LIBRARY](https://ronnie-reagan.github.io/DFPWM_LIBRARY/).
+Visit the production build at [www.donreagan.ca/DFPWM_LIBRARY](https://donreagan.ca/DFPWM_LIBRARY/).
